@@ -49,8 +49,13 @@ export const ProjectIdParamSchema = z.object({
   projectId: z.string().min(1, 'Project ID is required'),
 });
 
+export const MoveIssueStatusSchema = z.object({
+  status: IssueStatusSchema,
+}).strict();
+
 export type CreateIssueInput = z.infer<typeof CreateIssueSchema>;
 export type UpdateIssueInput = z.infer<typeof UpdateIssueSchema>;
 export type PaginationInput = z.infer<typeof PaginationSchema>;
 export type IssueFiltersInput = z.infer<typeof IssueFiltersSchema>;
 export type SortInput = z.infer<typeof SortSchema>;
+export type MoveIssueStatusInput = z.infer<typeof MoveIssueStatusSchema>;
