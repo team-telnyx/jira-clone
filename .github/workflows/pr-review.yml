@@ -1,0 +1,50 @@
+name: PR Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      github_event_number:
+        description: Pull request number to review
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run PR review
+        uses: team-telnyx/reviewpr-internal@feat/inline-comments-and-scoring
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          model: gpt-5.2-codex
+          custom_message: |
+            CRITICAL: You MUST read the AGENTS.md file in the repository root before writing the review.
+            The AGENTS.md file contains the exact output format, scoring rubric, and review rules you must follow.
+
+            OUTPUT FORMAT for /tmp/pr-review.md (use HTML <h3> tags, NOT markdown ###):
+            1. <h3>Summary</h3> — 2-4 sentence technical summary, then per-file bullet points
+            2. <h3>Score: N/10</h3> — overall score with detailed rubric reasoning
+               - If score < 10, MUST include "To improve your score:" bullet list with specific, actionable items
+            3. <h3>Important Files Changed</h3> — markdown table with Filename and Overview columns
+            4. End with: <sub>Reviewed with Codex (gpt-5.2-codex)</sub>
+
+            SCORE-TO-ACTION MAPPING (write to /tmp/pr-action.txt):
+            - Score 9-10 → APPROVE (PR is safe to merge, no blockers found)
+            - Score 5-8  → COMMENT (non-blocking feedback only)
+            - Score 1-4  → REQUEST_CHANGES (blocking issues found)
+
+            INLINE COMMENTS (write to /tmp/pr-inline-comments.json):
+            For each issue found on a specific line, add an entry to the JSON array.
+            Each inline comment must include:
+            - [Critical], [High], [Medium], or [Low] severity tag
+            - Clear explanation of the problem
+            - A suggested fix as a code snippet OR an agent-readable prompt
+            Be specific and technical — reference actual functions, variables, and line numbers.
+          github_event_number: ${{ inputs.github_event_number || github.event.pull_request.number }}
