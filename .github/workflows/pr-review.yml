@@ -1,0 +1,51 @@
+name: PR Review
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to review
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get PR diff
+        run: |
+          PR_NUM=${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          DIFF=$(gh pr diff $PR_NUM --repo ${{ github.repository }})
+          echo "$DIFF" > pr_diff.txt
+      
+      - name: Review with OpenAI
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          DIFF=$(cat pr_diff.txt)
+          PR_NUM=${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          
+          RESPONSE=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\": \"gpt-4.1\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a code reviewer. Review the PR diff. Output: Summary, Score (1-10), Files Changed. Then decide: Score 9-10 = APPROVE, 5-8 = COMMENT, 1-4 = REQUEST_CHANGES\"}, {\"role\": \"user\", \"content\": \"Review this PR:\\n$DIFF\"}], \"max_tokens\": 2000}")
+          
+          CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+          gh pr comment $PR_NUM --body "$CONTENT"
+          
+          if echo "$CONTENT" | grep -qi "APPROVE"; then
+            gh pr review $PR_NUM --approve -b "LGTM!"
+          elif echo "$CONTENT" | grep -qi "REQUEST_CHANGES"; then
+            gh pr review $PR_NUM --request-changes -b "Changes needed"
+          else
+            gh pr review $PR_NUM --comment -b "Reviewed"
+          fi
