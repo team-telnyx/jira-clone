@@ -1,5 +1,4 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
 import * as IssueModel from '../models/Issue.js';
 import * as ProjectModel from '../models/Project.js';
 import * as UserModel from '../models/User.js';
@@ -9,8 +8,9 @@ import {
   PaginationSchema,
   IssueFiltersSchema,
   SortSchema,
+  MoveIssueStatusSchema,
 } from '../validators/issueValidator.js';
-import { NotFoundError, ValidationError, ForbiddenError, formatErrorResponse, AppError } from '../utils/errors.js';
+import { NotFoundError, ValidationError, ForbiddenError } from '../utils/errors.js';
 import type { ApiResponse, PaginatedResponse, Issue } from '../types/index.js';
 
 function escapeHtml(text: string | undefined): string | undefined {
@@ -267,6 +267,51 @@ export async function deleteIssue(
     }
     
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function moveIssueStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { projectId, issueId } = req.params;
+
+    const project = ProjectModel.findProjectById(projectId);
+    if (!project) {
+      throw new NotFoundError('Project', projectId);
+    }
+
+    const existingIssue = IssueModel.findIssueByIdOrKey(projectId, issueId);
+    if (!existingIssue) {
+      throw new NotFoundError('Issue', issueId);
+    }
+
+    const validationResult = MoveIssueStatusSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => ({
+        field: e.path.join('.'),
+        message: e.message,
+      }));
+      throw new ValidationError('Validation failed', { errors });
+    }
+
+    const { status } = validationResult.data;
+
+    const updated = IssueModel.updateIssue(existingIssue.id, { status });
+    if (!updated) {
+      throw new NotFoundError('Issue', issueId);
+    }
+
+    const response: ApiResponse<Issue> = {
+      success: true,
+      data: updated,
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     next(error);
   }

@@ -423,6 +423,221 @@ describe('Issue Controller Integration Tests', () => {
     });
   });
 
+  describe('PATCH /api/projects/:projectId/issues/:issueId/move - Move Issue Status', () => {
+    it('TC-32: should move issue status from backlog to todo', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'bug',
+        status: 'backlog',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'todo' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe('todo');
+      expect(response.body.data.id).toBe(issue.id);
+    });
+
+    it('TC-33: should move issue status from todo to in_progress', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'task',
+        status: 'todo',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'in_progress' })
+        .expect(200);
+
+      expect(response.body.data.status).toBe('in_progress');
+    });
+
+    it('TC-34: should move issue status from in_progress to in_review', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'story',
+        status: 'in_progress',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'in_review' })
+        .expect(200);
+
+      expect(response.body.data.status).toBe('in_review');
+    });
+
+    it('TC-35: should move issue status from in_review to done', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'epic',
+        status: 'in_review',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'done' })
+        .expect(200);
+
+      expect(response.body.data.status).toBe('done');
+    });
+
+    it('TC-36: should allow direct status transition from todo to done', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Quick Fix',
+        type: 'bug',
+        status: 'todo',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'done' })
+        .expect(200);
+
+      expect(response.body.data.status).toBe('done');
+    });
+
+    it('TC-37: should move issue status using issue key', async () => {
+      IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'bug',
+        status: 'backlog',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/TEST-1/move`)
+        .send({ status: 'in_progress' })
+        .expect(200);
+
+      expect(response.body.data.status).toBe('in_progress');
+      expect(response.body.data.issueKey).toBe('TEST-1');
+    });
+
+    it('TC-38: should return 400 for invalid status value', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'bug',
+        status: 'backlog',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'invalid_status' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('TC-39: should return 400 when status is missing', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'bug',
+        status: 'backlog',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({})
+        .expect(400);
+
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('TC-40: should return 400 for extra fields in request body', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'bug',
+        status: 'backlog',
+        reporterId: USER_1_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'todo', extraField: 'not allowed' })
+        .expect(400);
+
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('TC-41: should return 404 when issue not found', async () => {
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/non-existent-issue/move`)
+        .send({ status: 'todo' })
+        .expect(404);
+
+      expect(response.body.error.code).toBe('NOT_FOUND');
+      expect(response.body.error.message).toContain('Issue');
+    });
+
+    it('TC-42: should return 404 when project not found', async () => {
+      const response = await request(app)
+        .patch(`${BASE_URL}/non-existent-project/issues/some-issue/move`)
+        .send({ status: 'todo' })
+        .expect(404);
+
+      expect(response.body.error.code).toBe('NOT_FOUND');
+      expect(response.body.error.message).toContain('Project');
+    });
+
+    it('TC-43: should preserve other issue fields when moving status', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Original Title',
+        description: 'Original Description',
+        type: 'bug',
+        status: 'backlog',
+        priority: 'high',
+        reporterId: USER_1_ID,
+        assigneeId: USER_2_ID,
+      });
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'in_progress' })
+        .expect(200);
+
+      expect(response.body.data.status).toBe('in_progress');
+      expect(response.body.data.title).toBe('Original Title');
+      expect(response.body.data.description).toBe('Original Description');
+      expect(response.body.data.type).toBe('bug');
+      expect(response.body.data.priority).toBe('high');
+      expect(response.body.data.assigneeId).toBe(USER_2_ID);
+    });
+
+    it('TC-44: should update the updatedAt timestamp when moving status', async () => {
+      const issue = IssueModel.createIssue(PROJECT_ID, 'TEST', {
+        title: 'Test Issue',
+        type: 'bug',
+        status: 'backlog',
+        reporterId: USER_1_ID,
+      });
+
+      const originalUpdatedAt = issue.updatedAt;
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const response = await request(app)
+        .patch(`${BASE_URL}/${PROJECT_ID}/issues/${issue.id}/move`)
+        .send({ status: 'todo' })
+        .expect(200);
+
+      const newUpdatedAt = new Date(response.body.data.updatedAt);
+      expect(newUpdatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+    });
+  });
+
   describe('Error Handling - EC-1: Not Found Scenarios', () => {
     it('TC-21: should return 404 when project not found', async () => {
       const response = await request(app)
