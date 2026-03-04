@@ -1,2 +1,8 @@
-// Barrel export for types
-export {}
+export type {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  AuthState,
+  AuthContextType,
+} from './auth'
