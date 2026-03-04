@@ -1,0 +1,22 @@
+.board {
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  overflow-x: auto;
+  min-height: calc(100vh - 100px);
+  align-items: flex-start;
+}
+
+.loading,
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  font-size: 16px;
+  color: #5e6c84;
+}
+
+.error {
+  color: #c62828;
+}
