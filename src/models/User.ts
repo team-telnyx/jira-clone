@@ -3,17 +3,20 @@ import type { User } from '../types/index.js';
 
 const users: Map<string, User> = new Map();
 
+export const SEED_USER_1_ID = '00000000-0000-0000-0000-000000000001';
+export const SEED_USER_2_ID = '00000000-0000-0000-0000-000000000002';
+
 export function seedUsers(): void {
   const defaultUsers: User[] = [
     {
-      id: 'user-1',
+      id: SEED_USER_1_ID,
       email: 'john@example.com',
       name: 'John Doe',
       createdAt: new Date(),
       updatedAt: new Date(),
     },
     {
-      id: 'user-2',
+      id: SEED_USER_2_ID,
       email: 'jane@example.com',
       name: 'Jane Smith',
       createdAt: new Date(),
