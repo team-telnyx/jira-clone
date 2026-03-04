@@ -11,14 +11,49 @@ on:
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
 jobs:
-  review:
+  codex:
     runs-on: ubuntu-latest
     steps:
-      - name: Run Codex PR Review
-        uses: team-telnyx/reviewpr-internal@main
+      - uses: actions/checkout@v5
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-          github_event_number: ${{ github.event.inputs.pr_number }}
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+
+      - name: Pre-fetch base and head refs for the PR
+        run: |
+          git fetch --no-tags origin ${{ github.event.pull_request.base.ref }} +refs/pull/${{ github.event.pull_request.number }}/head
+
+      - name: Run Codex
+        id: run_codex
+        uses: openai/codex-action@v1.4
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          model: gpt-5.2-codex
+          sandbox: danger-full-access
+          prompt: |
+            You are operating in CI for PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+
+            Execute this exact workflow:
+
+            1) Run a Codex review against the PR base branch and save output:
+               codex exec review --base "origin/${{ github.event.pull_request.base.ref }}" --model "gpt-5.2-codex" --full-auto > /tmp/pr-review.md
+
+            2) Decide one review action:
+               - REQUEST_CHANGES: if you find blocker/high-confidence bugs or security issues.
+               - APPROVE: if no blocking issues are found.
+               - COMMENT: if something is unclear.
+
+            3) Post the review summary as a PR comment using gh CLI:
+               gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file /tmp/pr-review.md
+
+            4) Submit a PR review using gh CLI with the same body
+
+            Pull request title and body for context:
+            ----
+            ${{ github.event.pull_request.title }}
+            ${{ github.event.pull_request.body }}
