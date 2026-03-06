@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { Project } from '../types/index.js';
+import { SEEDED_USER_1_ID, SEEDED_USER_2_ID } from './User.js';
 
 const projects: Map<string, Project> = new Map();
 const projectMembers: Map<string, Set<string>> = new Map();
@@ -26,7 +27,7 @@ export function seedProjects(): void {
   
   defaultProjects.forEach(project => {
     projects.set(project.id, project);
-    projectMembers.set(project.id, new Set(['user-1', 'user-2']));
+    projectMembers.set(project.id, new Set([SEEDED_USER_1_ID, SEEDED_USER_2_ID]));
   });
 }
 

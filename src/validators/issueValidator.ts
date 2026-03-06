@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const IssueStatusSchema = z.enum(['backlog', 'todo', 'in_progress', 'in_review', 'done', 'closed']);
 export const IssuePrioritySchema = z.enum(['lowest', 'low', 'medium', 'high', 'highest']);
