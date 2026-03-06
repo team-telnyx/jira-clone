@@ -175,3 +175,9 @@ export function clearIssues(): void {
   issues.clear();
   issueKeyCounters.clear();
 }
+
+export function countIssuesByProject(projectId: string): number {
+  return Array.from(issues.values())
+    .filter(issue => issue.projectId === projectId && !issue.deletedAt)
+    .length;
+}

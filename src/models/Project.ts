@@ -69,4 +69,9 @@ export function getProjectMembers(projectId: string): string[] {
   return members ? Array.from(members) : [];
 }
 
+export function clearProjects(): void {
+  projects.clear();
+  projectMembers.clear();
+}
+
 seedProjects();

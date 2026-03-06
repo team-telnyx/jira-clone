@@ -92,3 +92,13 @@ export interface ApiError {
     details?: Record<string, unknown>;
   };
 }
+
+export interface ProjectWithIssueCount extends Project {
+  issueCount: number;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  prefix: string;
+  description?: string;
+}

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import issueRoutes from './routes/issueRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -15,6 +16,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:projectId/issues', issueRoutes);
 
 app.use(notFoundHandler);
