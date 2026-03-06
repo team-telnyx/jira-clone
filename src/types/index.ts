@@ -19,6 +19,16 @@ export interface Project {
   updatedAt: Date;
 }
 
+export interface ProjectWithIssueCount {
+  id: string;
+  name: string;
+  key: string;
+  description?: string;
+  issueCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Issue {
   id: string;
   issueKey: string;

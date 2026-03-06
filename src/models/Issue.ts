@@ -175,3 +175,21 @@ export function clearIssues(): void {
   issues.clear();
   issueKeyCounters.clear();
 }
+
+/**
+ * Builds a map of project IDs to their active (non-deleted) issue counts.
+ * This is optimized for dashboard queries to avoid N+1 lookups.
+ * @returns Map of projectId -> issue count
+ */
+export function getIssueCountsByProject(): Map<string, number> {
+  const countMap = new Map<string, number>();
+  
+  for (const issue of issues.values()) {
+    if (!issue.deletedAt) {
+      const currentCount = countMap.get(issue.projectId) ?? 0;
+      countMap.set(issue.projectId, currentCount + 1);
+    }
+  }
+  
+  return countMap;
+}
