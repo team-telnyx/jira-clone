@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { Project } from '../types/index.js';
+import type { Project, ProjectWithIssueCount } from '../types/index.js';
+import * as IssueModel from './Issue.js';
 
 const projects: Map<string, Project> = new Map();
 const projectMembers: Map<string, Set<string>> = new Map();
@@ -67,6 +68,41 @@ export function isProjectMember(projectId: string, userId: string): boolean {
 export function getProjectMembers(projectId: string): string[] {
   const members = projectMembers.get(projectId);
   return members ? Array.from(members) : [];
+}
+
+export function getProjectWithIssueCount(projectId: string): ProjectWithIssueCount | null {
+  const project = projects.get(projectId);
+  if (!project) return null;
+
+  const issueResult = IssueModel.listIssuesByProject(projectId, {}, { page: 1, limit: 1 });
+  
+  return {
+    id: project.id,
+    name: project.name,
+    key: project.prefix,
+    description: project.description,
+    issueCount: issueResult.total,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+  };
+}
+
+export function getAllProjectsWithIssueCount(): ProjectWithIssueCount[] {
+  const allProjects = Array.from(projects.values());
+  
+  return allProjects.map(project => {
+    const issueResult = IssueModel.listIssuesByProject(project.id, {}, { page: 1, limit: 1 });
+    
+    return {
+      id: project.id,
+      name: project.name,
+      key: project.prefix,
+      description: project.description,
+      issueCount: issueResult.total,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    };
+  });
 }
 
 seedProjects();
