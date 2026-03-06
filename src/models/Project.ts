@@ -90,19 +90,19 @@ export function getProjectWithIssueCount(projectId: string): ProjectWithIssueCou
 export function getAllProjectsWithIssueCount(): ProjectWithIssueCount[] {
   const allProjects = Array.from(projects.values());
   
-  return allProjects.map(project => {
-    const issueResult = IssueModel.listIssuesByProject(project.id, {}, { page: 1, limit: 1 });
-    
-    return {
+  const issueCountMap = IssueModel.getIssueCountsByProject();
+  
+  return allProjects
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .map(project => ({
       id: project.id,
       name: project.name,
       key: project.prefix,
       description: project.description,
-      issueCount: issueResult.total,
+      issueCount: issueCountMap.get(project.id) ?? 0,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
-    };
-  });
+    }));
 }
 
 seedProjects();
